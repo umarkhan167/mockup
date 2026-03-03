@@ -17,3 +17,11 @@
     "node-fetch": "^2.7.0"
   }
 }
+
+"scripts": {
+  "start": "node server.js"
+}
+
+"engines": {
+  "node": "20.x"
+}
