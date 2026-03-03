@@ -1,7 +1,7 @@
 {
-  "name": "towelplus-mockup-uploader",
+  "name": "mockup",
   "version": "1.0.0",
-  "description": "",
+  "description": "TowelPlus Mockup Uploader",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
@@ -12,8 +12,6 @@
   },
   "dependencies": {
     "dotenv": "^17.3.1",
-    "express": "^5.2.1",
-    "multer": "^2.1.0",
-    "node-fetch": "^2.7.0"
+    "express": "^5.2.1"
   }
 }
