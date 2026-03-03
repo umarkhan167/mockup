@@ -450,8 +450,8 @@ app.get("/proxy/mockup", requireProxyAuth, (req, res) => {
 /** ----------------------------------------------------------------
  * Start server
  * ---------------------------------------------------------------*/
-app.listen(PORT, () => {
-  console.log(`✅ Server running on http://localhost:${PORT}`);
-  console.log(`✅ Health: http://localhost:${PORT}/health`);
-  console.log(`✅ Public: https://app.towelplus.ca/health`);
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`✅ Server listening on port ${PORT}`);
 });
