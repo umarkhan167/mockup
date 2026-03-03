@@ -205,8 +205,8 @@ app.get("/auth", (req, res) => {
   const state = crypto.randomBytes(16).toString("hex");
   setCookie(res, "tp_oauth_state", state, { maxAge: 600, sameSite: "Lax" });
 
-  // Use the redirect that exists in your app settings:
-  const redirectUri = `https://app.towelplus.ca/auth/callback`;
+  const APP_URL = process.env.APP_URL; // set this on Railway too
+  const redirectUri = `${APP_URL}/auth/callback`;
 
   const authUrl =
     `https://${shop}/admin/oauth/authorize` +
