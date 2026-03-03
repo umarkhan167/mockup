@@ -398,7 +398,8 @@ app.post("/api/upload-mockup", async (req, res) => {
     (target.parameters || []).forEach((p) => form.append(p.name, p.value));
     form.append("file", new Blob([fileBuffer], { type: ct }), safeFilename);
 
-    const uploadResp = await fetch(target.url, { method: "POST", body: form });
+    const uploadResp = await fetch(target.url, { method: "POST", body: form });const accessToken = tokenData.access_token;
+    console.log("🔥 ACCESS TOKEN:", accessToken);
     if (!uploadResp.ok) {
       const text = await uploadResp.text().catch(() => "");
       return res.status(500).json({
