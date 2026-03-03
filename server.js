@@ -407,51 +407,97 @@ app.post("/api/upload-mockup", async (req, res) => {
       });
     }
 
-    // 3) fileCreate
-    const created = await shopifyGraphQL(
-      shop,
-      accessToken,
-      `
-        mutation fileCreate($files: [FileCreateInput!]!) {
-          fileCreate(files: $files) {
-            files {
-              ... on MediaImage {
-                id
-                image { url }
-              }
-              ... on GenericFile {
-                id
-                url
-              }
-            }
-            userErrors { field message }
-          }
+    // 3) fileCreate using resourceUrl
+const created = await shopifyGraphQL(
+  shop,
+  accessToken,
+  `
+  mutation fileCreate($files: [FileCreateInput!]!) {
+    fileCreate(files: $files) {
+      files {
+        __typename
+        ... on MediaImage {
+          id
+          status
+          image { url }
+          preview { image { url } }
         }
-      `,
-      {
-        files: [
-          {
-            originalSource: target.resourceUrl,
-            contentType: "IMAGE",
-          },
-        ],
+        ... on GenericFile {
+          id
+          url
+        }
       }
-    );
-
-    const createErrors = created?.fileCreate?.userErrors || [];
-    if (createErrors.length) return res.status(400).json({ ok: false, error: createErrors });
-
-    const file = created?.fileCreate?.files?.[0];
-    const url = file?.image?.url || file?.url;
-
-    if (!url) return res.status(500).json({ ok: false, error: "No URL returned from fileCreate" });
-
-    return res.json({ ok: true, url });
-  } catch (err) {
-    console.error("❌ upload error:", err);
-    return res.status(500).json({ ok: false, error: String(err?.message || err) });
+      userErrors { field message }
+    }
   }
-});
+`,
+  {
+    files: [
+      {
+        originalSource: target.resourceUrl,
+        contentType: "IMAGE",
+      },
+    ],
+  }
+);
+
+const createErrors = created?.fileCreate?.userErrors || [];
+if (createErrors.length) {
+  return res.status(400).json({ ok: false, error: createErrors });
+}
+
+const fileObj = created?.fileCreate?.files?.[0];
+const fileId = fileObj?.id;
+
+// Try immediate URL first
+let url =
+  fileObj?.image?.url ||
+  fileObj?.preview?.image?.url ||
+  fileObj?.url;
+
+// If URL not ready yet, poll for a few seconds
+if (!url && fileId) {
+  const queryNode = `
+    query getFile($id: ID!) {
+      node(id: $id) {
+        __typename
+        ... on MediaImage {
+          id
+          status
+          image { url }
+          preview { image { url } }
+        }
+        ... on GenericFile {
+          id
+          url
+        }
+      }
+    }
+  `;
+
+  for (let i = 0; i < 8; i++) { // ~8 seconds total
+    await new Promise((r) => setTimeout(r, 1000));
+    const nodeData = await shopifyGraphQL(shop, accessToken, queryNode, { id: fileId });
+    const node = nodeData?.node;
+
+    url =
+      node?.image?.url ||
+      node?.preview?.image?.url ||
+      node?.url;
+
+    if (url) break;
+  }
+}
+
+if (!url) {
+  return res.status(500).json({
+    ok: false,
+    error: "File created but URL not ready yet. Try again in a few seconds.",
+    fileId,
+  });
+}
+
+return res.json({ ok: true, url, fileId });
 
 /** ----------------------------------------------------------------
  * Debug helper (optional): see if token exists for a shop
